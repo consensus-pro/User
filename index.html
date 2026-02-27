@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consensus - Backend Terminal</title>
+<script>document.documentElement.style.zoom = 0.75;</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* {margin: 0;padding: 0;box-sizing: border-box;}
+html, body {height: 100%;}
+body {font-family: 'Microsoft YaHei', Arial, sans-serif;display: flex;justify-content: center;align-items: center;color: #e0e0e0;overflow: hidden;position: relative;}
+.bg-blur {position: fixed;inset: 0;background: url("icon.png") center/cover no-repeat;filter: blur(3px);z-index: -2;}
+.overlay {position: fixed;inset: 0;background: rgba(0, 0, 0, 0.15);z-index: -1;}
+.menu-container {position: relative;display: inline-block;}
+.server-icon-wrapper {position: relative;cursor: pointer;display: flex;align-items: center;justify-content: center;}
+.server-icon-wrapper i {color: #00ff9d;font-size: 32px;text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);transition: all 0.3s ease;}
+.server-icon-wrapper:hover i {text-shadow: 0 0 20px rgba(0, 255, 157, 0.8);transform: scale(1.1);}
+.dropdown-menu {position: absolute;top: 40px;left: 0;background: rgba(10, 15, 26, 0.35);border: 1px solid rgba(0, 255, 157, 0.3);border-radius: 10px;padding: 10px 0;min-width: 160px;display: none;flex-direction: column;z-index: 100;backdrop-filter: blur(10px);box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);}
+.dropdown-menu.active {display: flex;}
+.dropdown-menu a {color: #e0e0e0;text-decoration: none;padding: 12px 20px;font-size: 14px;transition: all 0.3s ease;display: flex;align-items: center;gap: 10px;}
+.dropdown-menu a:hover {background: rgba(0, 255, 157, 0.1);color: #00ff9d;}
+.dropdown-menu a i {color: #00ff9d;width: 20px;text-align: center;}
+.dropdown-menu hr {border: none;border-top: 1px solid rgba(255, 255, 255, 0.1);margin: 5px 15px;}
+.review-modal-content {background: rgba(10, 15, 26, 0.2);padding: 40px;border-radius: 15px;text-align: center;box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);position: relative;backdrop-filter: blur(10px);border: 1px solid rgba(0, 255, 157, 0.3);max-width: 420px;width: 90%;}
+.status-icon.pending {background: #ffa500; color: #05080c;}
+.status-text.pending {color: #ffa500; text-shadow: 0 0 10px rgba(255, 165, 0, 0.5);}
+.review-details {text-align: left;margin: 20px 0;padding: 20px;background: rgba(5, 8, 12, 0.4);border-radius: 10px;border: 1px solid rgba(0, 255, 157, 0.2);}
+.review-details-item {display: flex;justify-content: space-between;margin-bottom: 12px;padding-bottom: 8px;border-bottom: 1px solid rgba(255, 255, 255, 0.1);}
+.review-details-item:last-child {border-bottom: none;margin-bottom: 0;padding-bottom: 0;}
+.review-details-label {color: #b0b0b0;font-size: 14px;}
+.review-details-value {color: #00ff9d;font-size: 14px;font-weight: 500;}
+.review-status-badge {display: inline-block;padding: 6px 16px;border-radius: 20px;font-size: 14px;font-weight: bold;margin-top: 15px;}
+.review-status-badge.pending {background: rgba(255, 165, 0, 0.2);color: #ffa500;border: 1px solid rgba(255, 165, 0, 0.5);}
+.review-status-badge.success {background: rgba(0, 255, 157, 0.2);color: #00ff9d;border: 1px solid rgba(0, 255, 157, 0.5);}
+.review-status-badge.failed {background: rgba(255, 68, 68, 0.2);color: #ff4444;border: 1px solid rgba(255, 68, 68, 0.5);}
+.close-modal-btn {position: absolute;bottom: 20px;right: 20px;padding: 8px 20px;background: rgba(255, 255, 255, 0.1);color: #b0b0b0;border: 1px solid rgba(255, 255, 255, 0.2);border-radius: 6px;cursor: pointer;transition: all 0.3s ease;font-size: 14px;}
+.close-modal-btn:hover {background: rgba(255, 255, 255, 0.2);color: #ffffff;}
+.no-review {color: #b0b0b0;font-size: 16px;padding: 30px 0;}
+.about-modal-content {background: rgba(10, 15, 26, 0.2);padding: 40px 40px 65px 40px;border-radius: 15px;text-align: center;box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);position: relative;backdrop-filter: blur(10px);border: 1px solid rgba(0, 255, 157, 0.3);max-width: 360px;width: 90%;}
+.about-text {color: #00ff9d;font-size: 24px;font-weight: bold;margin: 20px 0;text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);}
+.register-container {background: rgba(10, 15, 26, 0.45);padding: 40px;border-radius: 15px;box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);width: 400px;backdrop-filter: blur(10px);}
+.title {text-align: center;color: #00ff9d;margin-bottom: 30px;font-size: 28px;font-weight: bold;text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);display: flex;align-items: center;justify-content: center;gap: 12px;}
+.form-group {margin-bottom: 20px;}
+.form-group label {display: block;margin-bottom: 8px;color: #b0b0b0;font-weight: 500;display: flex;align-items: center;gap: 8px;}
+.form-group label i {color: #00ff9d;font-size: 16px;text-shadow: 0 0 5px rgba(0, 255, 157, 0.5);}
+.input-wrapper {position: relative; display: flex; align-items: center;}
+.form-group input {width: 100%;padding: 12px 90px 12px 12px;border: 2px solid rgba(0, 255, 157, 0.3);border-radius: 8px;font-size: 16px;transition: all 0.3s ease;background: rgba(5, 8, 12, 0.5);color: #ffffff;}
+.form-group input:focus {outline: none;border-color: #00ff9d;background: rgba(5, 8, 12, 0.7);box-shadow: 0 0 15px rgba(0, 255, 157, 0.5);}
+.form-group input.error {border-color: #ff4444;box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);}
+.buy-btn-inside {position: absolute;right: 6px;top: 50%;transform: translateY(-50%);padding: 6px 12px;background: linear-gradient(45deg, #00ff9d, #00cc7a);color: #05080c;border: none;border-radius: 6px;font-size: 14px;font-weight: bold;cursor: pointer;transition: all 0.3s ease;box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);z-index: 2;}
+.buy-btn-inside:hover {transform: translateY(-50%) scale(1.05);}
+.buy-btn-inside:active {transform: translateY(-50%) scale(0.9);}
+.error-message {color: #ff4444;font-size: 14px;margin-top: 5px;display: none;text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);}
+.register-btn {width: 100%;padding: 15px;background: linear-gradient(45deg, #00ff9d, #00cc7a);color: #05080c;border: none;border-radius: 8px;font-size: 18px;font-weight: bold;cursor: pointer;transition: all 0.3s ease;margin-top: 10px;box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);display: flex;align-items: center;justify-content: center;gap: 10px;}
+.register-btn:hover {transform: translateY(-2px); box-shadow: 0 0 30px rgba(0, 255, 157, 0.8);}
+.modal {display: none;position: fixed;top: 0; left: 0;width: 100%; height: 100%;background: rgba(0, 0, 0, 0.35);z-index: 1000;justify-content: center;align-items: center;}
+.modal-content {background: rgba(10, 15, 26, 0.2);padding: 40px;border-radius: 15px;text-align: center;box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);position: relative;backdrop-filter: blur(10px);border: 1px solid rgba(0, 255, 157, 0.3);max-width: 360px;width: 90%;}
+.status-icon {width: 80px; height: 80px; border-radius: 50%;margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;font-size: 40px; font-weight: bold; color: white;}
+.status-icon.success {background: #00ff9d; color: #05080c;}
+.status-icon.error{background: #ff4444;}
+.status-text {font-size: 18px; margin-bottom: 10px; line-height: 1.6;}
+.status-text.success {color: #00ff9d; text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);}
+.status-text.error{color: #ff4444; text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);}
+.countdown {position: absolute; bottom: 20px; right: 20px;color: #b0b0b0; font-size: 14px;}
+.reply-time {margin-top: 15px; padding: 10px;background: rgba(0, 255, 157, 0.1); border-radius: 8px;border-left: 4px solid #00ff9d; color: #b0b0b0; font-size: 14px;}
+.math-section {margin-bottom: 20px; padding: 15px;background: rgba(5, 8, 12, 0.4); border-radius: 10px;border-left: 4px solid #00ff9d; transition: all 0.3s ease;}
+.math-section.error {border-left-color: #ff4444; background: rgba(255, 68, 68, 0.1);}
+.math-title {display: flex; align-items: center; gap: 8px;color: #00ff9d; font-weight: 500; margin-bottom: 10px;}
+.math-problem-wrapper {display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0;}
+.math-problem {font-size: 1.3rem; text-align: center; font-weight: bold;padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 5px; color: #00ff9d; flex: 1;}
+.refresh-math-btn {background: linear-gradient(45deg, #00ff9d, #00cc7a); color: #05080c; border: none;border-radius: 6px; padding: 8px 12px; font-size: 16px; cursor: pointer;transition: all 0.3s ease; box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);min-width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;}
+.refresh-math-btn:hover {transform: scale(1.1); box-shadow: 0 0 15px rgba(0, 255, 157, 0.8);}
+.refresh-math-btn:active {transform: scale(0.9);}
+x {font-size: 12px; color: #b0b0b0;}
+xi {color: #00ff9d;}
+#mathAnswer {width: 100%; padding: 12px 15px; border-radius: 5px;border: 1px solid rgba(0, 255, 157, 0.3); background: rgba(5, 8, 12, 0.6);color: #ffffff; font-size: 1rem; margin-top: 8px; transition: all 0.3s ease;}
+#mathAnswer:focus {outline: none; border-color: #00ff9d; box-shadow: 0 0 0 2px rgba(0, 255, 157, 0.2);}
+#mathAnswer.error { border-color: #ff4444; box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);}
+#mathError {color: #ff4757; font-size: 0.9rem; margin-top: 5px; display: none;}
+.copyright {text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);}
+</style><base target="_blank"></head>
+
+<body>
+<div class="bg-blur"></div>
+<div class="overlay"></div>
+<div class="register-container">
+<h2 class="title">
+<div class="menu-container">
+<div class="server-icon-wrapper" id="serverMenuBtn">
+<i class="fas fa-server"></i></div>
+<nav class="dropdown-menu" id="dropdownMenu">
+<a href="https://qm.qq.com/q/tx1V8VO9Xi" target="_blank">
+<i class="fas fa-headset"></i>售后交流</a>
+<a href="#" id="menuMyReview">
+<i class="fas fa-clipboard-list"></i>我的审核</a>
+<hr><a href="#" id="menuAbout">
+<i class="fas fa-info-circle"></i>关于</a>
+</nav></div>Consensus账号注册</h2>
+<form id="registerForm">
+<div class="form-group">
+<label for="username"><i class="fas fa-user"></i>账号</label>
+<div class="input-wrapper">
+<input type="text" id="username" placeholder="请输入6-18位账号"></div>
+<div class="error-message" id="usernameError"></div></div>
+<div class="form-group">
+<label for="password"><i class="fas fa-lock"></i>密码</label>
+<div class="input-wrapper">
+<input type="password" id="password" placeholder="请输入6-18位密码">
+</div><div class="error-message" id="passwordError"></div></div>
+<div class="form-group">
+<label for="cardKey"><i class="fas fa-key"></i>卡密</label>
+<div class="input-wrapper">
+<input type="text" id="cardKey" placeholder="请输入卡密">
+<button type="button" class="buy-btn-inside" id="buyBtn">
+<i class="fas fa-shopping-cart"></i>购买</button></div>
+<div class="error-message" id="cardKeyError"></div></div>
+<div class="math-section" id="mathSection">
+<div class="math-title"><i class="fas fa-brain"></i>IQ检测</div>
+<div class="math-problem-wrapper">
+<div class="math-problem" id="mathProblem">生成题目中...</div>
+<button type="button" class="refresh-math-btn" id="refreshMathBtn" title="换一道题">
+<i class="fas fa-arrows-rotate"></i>
+</button></div>
+<input type="text" id="mathAnswer" placeholder="请输入计算结果">
+<div class="error-message" id="mathError">计算错误，请重新输入</div></div>
+<button type="submit" class="register-btn" id="registerBtn">
+<i class="fas fa-user-plus"></i>注册</button>
+<div class="copyright">© 2023 Consensus 开发组. 保留所有权利.</div>
+</form></div>
+<div class="modal" id="modal">
+<div class="modal-content">
+<div class="status-icon" id="statusIcon"></div>
+<div class="status-text" id="statusText"></div>
+<div class="reply-time" id="replyTime"></div>
+<div class="countdown" id="countdown"></div>
+</div></div>
+<div class="modal" id="reviewModal">
+<div class="review-modal-content">
+<div class="status-icon pending" id="reviewStatusIcon">
+<i class="fas fa-clipboard-check"></i></div>
+<div class="status-text pending" id="reviewStatusText">我的审核</div>
+<div id="reviewContent"></div>
+<button class="close-modal-btn" id="closeReviewModal">关闭</button>
+</div></div>
+<div class="modal" id="aboutModal">
+<div class="about-modal-content">
+<div class="status-icon success">
+<i class="fas fa-exclamation" style="font-weight: 1000; font-size: 1.2em;"></i>
+</div><div class="about-text">Hello User！！</div>
+<xi>该程序由AES-256提拱加密支持</xi><br />
+<xi>本项目运行于GithubPages服务器</xi><br />
+<xi>主要负责人:借口盒、Authority、空</xi>
+<br /><x>版本：v1.0.4 | 更新：2026.2.24</x>
+<button class="close-modal-btn" id="closeAboutModal">关闭</button>
+</div></div><script>
+const validCardKeys = ['0D39B36234','D858EA261D','7B7427FC80','726A7577FC','38F00DF79E','E0B3D62CA0','F0E2B3D4E1','7A400FF974','1AB36D430D','2ED96F2E98','C57CF9936D','40CCF1199B','52D21C4B8D','E0AC288E35','C726A10D92','33E95F832F','CD911F88E4','24C7A52710','A8B128CEDF','94DE46EDF0','6AB85681C8','0E358AAF82','D07A2EAA4D','8F3EEB0CA2','54875995D9','C621B0AC05','B67E796C28','5AEEB0696C','68D0F6A6C4','C174F3DA22','2ADFF6B7F2','0FE27C9441','B43A2E09DC','4B4EEDF979','C219B8DE81','ECDE11204C','BDF8DA867E','F3B18F6E49','82C8098F74','09ED7E8E05','2EA3729336','36EEAE5395','FF0AD95667','4EDC39E5BD','0508B4882E','B123044B2B','DA4880476E','70B3D21367','8B7B09E583','1B288E1201'];
+const mathProblems = [{q:"9 - 8 = ?",a:"1"},{q:"22 ÷ 11 = ?",a:"2"},{q:"9 ÷ 3 = ?",a:"3"},{q:"26 - 22 = ?",a:"4"},{q:"2 + 3 = ?",a:"5"},{q:"72 ÷ 12 = ?",a:"6"},{q:"4 + 3 = ?",a:"7"},{q:"71 - 63 = ?",a:"8"},{q:"3 x 3 = ?",a:"9"},{q:"91 - 81 = ?",a:"10"},{q:"6 + 5 = ?",a:"11"},{q:"78 - 66 = ?",a:"12"},{q:"9 + 4 = ?",a:"13"},{q:"86 - 72 = ?",a:"14"},{q:"5 × 3 = ?",a:"15"},{q:"52 - 36 = ?",a:"16"},{q:"9 + 8 = ?",a:"17"},{q:"162 ÷ 9 = ?",a:"18"},{q:"25 - 6 = ?",a:"19"},{q:"100 ÷ 5 = ?",a:"20"}];
+const form = document.getElementById('registerForm');
+const usernameInput = document.getElementById('username');
+const passwordInput = document.getElementById('password');
+const cardKeyInput = document.getElementById('cardKey');
+const mathAnswerInput = document.getElementById('mathAnswer');
+const mathSection = document.getElementById('mathSection');
+const modal = document.getElementById('modal');
+const statusIcon = document.getElementById('statusIcon');
+const statusText = document.getElementById('statusText');
+const replyTime = document.getElementById('replyTime');
+const countdown = document.getElementById('countdown');
+const buyBtn = document.getElementById('buyBtn');
+const refreshMathBtn = document.getElementById('refreshMathBtn');
+const registerBtn = document.getElementById('registerBtn');
+let currentMathProblem;
+function generateMathProblem() {currentMathProblem = mathProblems[Math.floor(Math.random() * mathProblems.length)];document.getElementById('mathProblem').textContent = currentMathProblem.q;}
+function getRegistrationData() {const data = localStorage.getItem('registrationData');return data ? JSON.parse(data) : {};}
+function saveRegistrationData(data) {localStorage.setItem('registrationData', JSON.stringify(data));}
+function showError(inputEl, errEl, msg) {inputEl.classList.add('error');errEl.textContent = msg;errEl.style.display = 'block';}
+function clearError(inputEl, errEl) {inputEl.classList.remove('error');errEl.style.display = 'none';}
+function validateForm() {
+let ok = true;
+const u = usernameInput.value.trim();
+if (!u) { showError(usernameInput, document.getElementById('usernameError'), '账号未填写'); ok = false; }
+else if (u.length < 6 || u.length > 18) { showError(usernameInput, document.getElementById('usernameError'), '账号长度必须为6-18位'); ok = false; }
+else clearError(usernameInput, document.getElementById('usernameError'));
+const p = passwordInput.value.trim();
+if (!p) { showError(passwordInput, document.getElementById('passwordError'), '密码未填写'); ok = false; }
+else if (p.length < 6 || p.length > 18) { showError(passwordInput, document.getElementById('passwordError'), '密码长度必须为6-18位'); ok = false; }
+else clearError(passwordInput, document.getElementById('passwordError'));
+const c = cardKeyInput.value.trim().toUpperCase();
+if (!c) { showError(cardKeyInput, document.getElementById('cardKeyError'), '卡密未填写'); ok = false; }
+else if (!validCardKeys.includes(c)) { showError(cardKeyInput, document.getElementById('cardKeyError'), '卡密不存在'); ok = false; }
+else clearError(cardKeyInput, document.getElementById('cardKeyError'));
+const m = mathAnswerInput.value.trim();
+if (!m) {
+mathAnswerInput.classList.add('error'); mathSection.classList.add('error');
+document.getElementById('mathError').textContent = '计算结果未填写'; document.getElementById('mathError').style.display = 'block'; ok = false;
+} else if (m !== currentMathProblem.a) {
+mathAnswerInput.classList.add('error'); mathSection.classList.add('error');
+document.getElementById('mathError').textContent = '计算错误，请重新输入'; document.getElementById('mathError').style.display = 'block'; ok = false;
+} else {
+mathAnswerInput.classList.remove('error'); mathSection.classList.remove('error'); document.getElementById('mathError').style.display = 'none';}
+return ok;}
+function showModal(success, msg = '', replyDate = null) {modal.style.display = 'flex';
+if (success) {
+statusIcon.className = 'status-icon success'; statusIcon.innerHTML = '<i class="fas fa-check"></i>';
+statusText.className = 'status-text success'; statusText.innerHTML = `<div>注册申请提交成功</div><div>待人工审核...</div><div>点击标题图标→功能列表→我的审核可查看状态`;
+const displayReplyDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+replyTime.innerHTML = `预计注册完成：${displayReplyDate.getFullYear()}年${displayReplyDate.getMonth() + 1}月${displayReplyDate.getDate()}号${displayReplyDate.getHours()}点${displayReplyDate.getMinutes()}分${displayReplyDate.getSeconds()}秒`;
+replyTime.style.display = 'block';
+} else {
+statusIcon.className = 'status-icon error'; statusIcon.innerHTML = '<i class="fas fa-times"></i>';
+statusText.className = 'status-text error'; statusText.innerHTML = `<div>${msg}</div>`;
+if (replyDate) {
+const f = `${replyDate.getFullYear()}年${replyDate.getMonth() + 1}月${replyDate.getDate()}号${replyDate.getHours()}点${replyDate.getMinutes()}分${replyDate.getSeconds()}秒`;
+replyTime.innerHTML = `预计注册完成：${f}`; replyTime.style.display = 'block';
+} else replyTime.style.display = 'none';}
+let t = 5; countdown.innerHTML = `自动跳转${t}秒`;
+const timer = setInterval(() => {
+t--; countdown.innerHTML = `自动跳转${t}秒`;
+if (t <= 0) { clearInterval(timer); modal.style.display = 'none'; if (success) location.reload(); }
+}, 1000);}
+function checkDuplicateRegistration(username, cardKey) {
+const reg = getRegistrationData();
+if (reg[username]) return { isDuplicate: true, type: 'username', replyDate: new Date(reg[username].displayReplyDate) };
+for (const [name, data] of Object.entries(reg)) if (data.cardKey === cardKey) return { isDuplicate: true, type: 'cardKey', usedBy: name };
+return { isDuplicate: false };}
+buyBtn.addEventListener('click', () => {
+buyBtn.style.transform = 'translateY(-50%) scale(0.9)';
+setTimeout(() => { buyBtn.style.transform = 'translateY(-50%) scale(1)'; }, 150);
+setTimeout(() => window.open('https://suifk.qmyfk.cn/links/F8B12C5E', '_blank'), 200);});
+refreshMathBtn.addEventListener('click', () => {
+generateMathProblem();
+mathAnswerInput.value = '';
+mathAnswerInput.classList.remove('error');
+mathSection.classList.remove('error');
+document.getElementById('mathError').style.display = 'none';});
+form.addEventListener('submit', async e => {
+e.preventDefault();
+const originalHTML = registerBtn.innerHTML;
+registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>注册中...';
+registerBtn.disabled = true;
+await new Promise(resolve => setTimeout(resolve, 500));
+if (!validateForm()) {const errs = [];
+['usernameError','passwordError','cardKeyError','mathError']
+.forEach(id => {const el = document.getElementById(id);if (el.style.display === 'block') errs.push(el.textContent);});
+showModal(false, errs.join('<br>'));
+registerBtn.innerHTML = originalHTML;
+registerBtn.disabled = false;return;}
+const u = usernameInput.value.trim(), p = passwordInput.value.trim(), c = cardKeyInput.value.trim().toUpperCase();
+const dup = checkDuplicateRegistration(u, c);
+if (dup.isDuplicate) {
+if (dup.type === 'username') showModal(false, '请勿重复注册<br>已提交过注册申请，请耐心等待...', dup.replyDate);
+else showModal(false, `卡密已被使用<br>该卡密已被账号 ${dup.usedBy} 使用`);
+registerBtn.innerHTML = originalHTML;
+registerBtn.disabled = false;return;}
+const reg = getRegistrationData();
+const now = Date.now();
+const displayReplyTime = new Date(now + 2 * 24 * 60 * 60 * 1000);
+const actualCompleteTime = new Date(now + 1.5 * 24 * 60 * 60 * 1000);
+reg[u] = {password: p, cardKey: c, registerTime: new Date(now).toISOString(),displayReplyDate: displayReplyTime.toISOString(),actualCompleteDate: actualCompleteTime.toISOString()};
+saveRegistrationData(reg);showModal(true);});
+['username','password','cardKey'].forEach(id => {
+document.getElementById(id).addEventListener('input', () =>
+clearError(document.getElementById(id), document.getElementById(id + 'Error')));});
+mathAnswerInput.addEventListener('input', () => {
+mathAnswerInput.classList.remove('error'); mathSection.classList.remove('error');
+document.getElementById('mathError').style.display = 'none';});
+generateMathProblem();
+const serverMenuBtn = document.getElementById('serverMenuBtn');
+const dropdownMenu = document.getElementById('dropdownMenu');
+const menuMyReview = document.getElementById('menuMyReview');
+const menuAbout = document.getElementById('menuAbout');
+serverMenuBtn.addEventListener('click', (e) => {
+e.stopPropagation();
+dropdownMenu.classList.toggle('active');});
+document.addEventListener('click', (e) => {
+if (!e.target.closest('.menu-container')) {
+dropdownMenu.classList.remove('active');}});
+const reviewModal = document.getElementById('reviewModal');
+const closeReviewModal = document.getElementById('closeReviewModal');
+const reviewContent = document.getElementById('reviewContent');
+const reviewStatusIcon = document.getElementById('reviewStatusIcon');
+const reviewStatusText = document.getElementById('reviewStatusText');
+function formatDate(dateStr) {const date = new Date(dateStr);
+return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}号${date.getHours()}点${date.getMinutes()}分${date.getSeconds()}秒`;}
+function getReviewStatus() {
+const reg = getRegistrationData();const entries = Object.entries(reg);
+if (entries.length === 0) {return null;}
+const [username, data] = entries[entries.length - 1];
+const now = Date.now();
+let status = 'pending';let statusText = '待审核';
+const actualCompleteTime = new Date(data.actualCompleteDate).getTime();
+if (now >= actualCompleteTime) {status = 'success';statusText = '审核通过';}
+return {username,...data,status,statusText};}
+function showReviewModal() {const review = getReviewStatus();
+if (!review) {
+reviewContent.innerHTML = '<div class="no-review"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block; color: #555;"></i>暂无审核记录</div>';
+reviewStatusIcon.className = 'status-icon pending';
+reviewStatusIcon.innerHTML = '<i class="fas fa-clipboard-check"></i>';
+reviewStatusText.className = 'status-text pending';
+reviewStatusText.textContent = '我的审核';} else {
+const statusClass = review.status === 'success' ? 'success' : 'pending';
+const statusIconClass = review.status === 'success' ? 'fa-check-circle' : 'fa-clock';
+reviewStatusIcon.className = `status-icon ${statusClass}`;
+reviewStatusIcon.innerHTML = `<i class="fas ${statusIconClass}"></i>`;
+reviewStatusText.className = `status-text ${statusClass}`;
+reviewStatusText.textContent = review.statusText;
+reviewContent.innerHTML = `
+<div class="review-details">
+<div class="review-details-item">
+<span class="review-details-label"><i class="fas fa-user" style="margin-right: 5px;"></i>账号</span>
+<span class="review-details-value">${review.username}</span></div>
+<div class="review-details-item">
+<span class="review-details-label"><i class="fas fa-lock" style="margin-right: 5px;"></i>密码</span>
+<span class="review-details-value">${review.password}</span></div>
+<div class="review-details-item">
+<span class="review-details-label"><i class="fas fa-key" style="margin-right: 5px;"></i>使用卡密</span>
+<span class="review-details-value">${review.cardKey}</span></div>
+<div class="review-details-item">
+<span class="review-details-label"><i class="fas fa-calendar-alt" style="margin-right: 5px;"></i>注册时间</span>
+<span class="review-details-value">${formatDate(review.registerTime)}</span></div>
+<div class="review-details-item">
+<span class="review-details-label"><i class="fas fa-hourglass-half" style="margin-right: 5px;"></i>预计完成</span>
+<span class="review-details-value">${formatDate(review.displayReplyDate)}</span>
+</div></div><div style="margin-top: 20px;">
+<span class="review-status-badge ${review.status}">
+<i class="fas ${statusIconClass}" style="margin-right: 5px;"></i>${review.statusText}
+</span></div>`;}
+reviewModal.style.display = 'flex';}
+menuMyReview.addEventListener('click', (e) => {e.preventDefault();dropdownMenu.classList.remove('active');showReviewModal();});
+closeReviewModal.addEventListener('click', () => {
+reviewModal.style.display = 'none';});
+reviewModal.addEventListener('click', (e) => {
+if (e.target === reviewModal) {
+reviewModal.style.display = 'none';}});
+const aboutModal = document.getElementById('aboutModal');
+const closeAboutModal = document.getElementById('closeAboutModal');
+menuAbout.addEventListener('click', (e) => {
+e.preventDefault();
+dropdownMenu.classList.remove('active');
+aboutModal.style.display = 'flex';});
+closeAboutModal.addEventListener('click', () => {aboutModal.style.display = 'none';});
+aboutModal.addEventListener('click', (e) => {
+if (e.target === aboutModal) {aboutModal.style.display = 'none';}});
+</script></body></html>
